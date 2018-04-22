@@ -1,5 +1,6 @@
 /**
  * 复制指定内容到粘贴板
+ * @param {string}
  */
 let copyElementText = (el) => {
     // 如果传入的是一个字符串，并且是class名 或者id名，就当做是一个元素节点处理

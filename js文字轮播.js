@@ -53,6 +53,7 @@ var demo = document.getElementById("demo");
   }
   var inerval=setInterval(Marquee,10)
   demo.onmouseout=function (){
+      
     inerval=setInterval(Marquee,10)
   }
   demo.onmouseover=function(){

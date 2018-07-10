@@ -1,108 +1,107 @@
 define(['jquery'], function($) {
-    const Api = {
-        register:'',
-        login:'',
-        imgCode:'',
-        smsCode:'',
-        formToken:'',
-        voiceCode:'',
-    }
-    const rcode = 200000
+    let user = () => {
+        const Api = {
+            register:'/userCenter/user/regist',
+            login:'/userCenter/user/login',
+            imgCode:'/userCenter/kaptcha.jpg',
+            smsCode:'/userCenter/user/sendSMS',
+            formToken:'/feapi/users/formToken',
+            voiceCode:'/userCenter/user/sendVoice',
+        }
+        const rcode = 200000
 
-    const getValue = (dom) => {
-        let value = null
-        // 获取电话
-        $(dom).blur(() => {
-            value = $(dom).value()
-        })
-        return value
-    }
+        let formToken_reg = ''
 
-    class user {
-        constructor(){
+        let formToken_log = ''
 
+        const getValue = (dom) => {
+            let value = null
+            // 获取电话
+            $(dom).blur(() => {
+                value = $(dom).value()
+            })
+            return value
         }
 
+        let getFormToken = () => {
+            let pro = new Promise((resolve,reject) => {
+                com.ajax({
+                    url: Api.formToken,
+                    contentType: "application/json",
+                    dataType: "json",
+                    type: "get",
+                    headers:{
+                        "Accept": "application/json;charset=UTF-8",
+                        "clientId": "XXD_ACTIVITY_H5_PAGE",
+                        "clientTime": new Date().getTime(),
+                    },
+                    data:{},
+                    success: (res) => {
+                        resolve(res.token)
+                    },
+                    error: (res) => {
+                        reject(res.token)
+                    }
+                })
+            })
+            return pro
+        }
+        // 初始获取formToken
+        getFormToken().then(data => {formToken_reg = data},data => {formToken_reg = data})
+        getFormToken().then(data => {formToken_log = data},data => {formToken_reg = data})
+
+
+
         // 注册方法
-        register(param){
-            // 获取formToken
-            let formToken = () => {
-                let pro = new Promise((resolve,reject) => {
-                    com.ajax({
-                        url: Api.formToken,
-                        contentType:'',
-                        headers:{
-
-                        },
-                        data:{
-
-                        },
-                        success: (res) => {
-                            if(res.code == rcode){
-                                resolve(res.data.data)
-                            }
-                            else{
-                                reject(res)
-                            }
-                        },
-                        error: (res) => {
-                            reject(res)
-                        }
-                    })
-                })
-                return pro
-            }
-
+        let registerWay = (param) => {
+            /**
+             * @param {object}
+             * -  phone
+             * -  password
+             * -  imgCode
+             * -  smsCode
+             * -  submit
+             * -  voiceCode
+             */
+            
             // 获取图片验证码
-            let imgCode = () => {
-                let pro = new Promise((resolve,reject) => {
-                    com.ajax({
-                        url: Api.imgCode,
-                        contentType:'',
-                        headers:{
-
-                        },
-                        data:{
-
-                        },
-                        success: (res) => {
-                            if(res.code == rcode){
-                                resolve(res.data.data)
-                            }
-                            else{
-                                reject(res)
-                            }
-                        },
-                        error: (res) => {
-                            reject(res)
-                        }
-                    })
-                })
-                return pro
+            let imgCode = (formToken) => {
+                $(param.imgCode).attr('src',`${Api.imgCode}?formtoken=${formToken}&v=Math.random()`)
             }
 
             // 获取短信验证码
             let smsCode = () => {
+                let getMsgData = {
+                        data:{
+                            "phone": userData.phone,
+                            "kaptcha": userData.imgCode,
+                            "type": 0,
+                            "scene": 1 
+                        }
+                    }
+
                 let pro = new Promise((resolve,reject) => {
                     com.ajax({
                         url: Api.smsCode,
-                        contentType:'',
+                        contentType: "application/json",
+                        dataType: "json",
+                        type: "post",
                         headers:{
-
+                            "Accept": "application/json;charset=UTF-8",
+                            "clientId": "XXD_FRONT_END_H5",
+                            "clientTime": new Date().getTime()
                         },
-                        data:{
-
-                        },
+                        data: JSON.stringify(getMsgData),
                         success: (res) => {
-                            if(res.code == rcode){
-                                resolve(res.data.data)
+                            if(res.code == rcode && res.data.code == 0){
+                                resolve(res.data.code)
                             }
                             else{
                                 reject(res)
                             }
                         },
                         error: (res) => {
-                            reject(res)
+                            reject(res.data)
                         }
                     })
                 })
@@ -111,19 +110,29 @@ define(['jquery'], function($) {
 
             // 获取语音验证码
             let voiceCode = () => {
+                let formData = {
+                    data: {
+                        "busiCode":"CASH_MONEY",
+                        "kaptchaCode": userData.imgCode,
+                        "phone": userData.phone
+                    }
+                }
+
                 let pro = new Promise((resolve,reject) => {
                     com.ajax({
                         url: Api.voiceCode,
-                        contentType:'',
+                        contentType: "application/json",
+                        dataType: "json",
+                        type: 'POST',
                         headers:{
-
+                            'clientId': 'XXD_INTEGRATION_PLATFORM',
+                            'clientTime': new Date().getTime(),
+                            's': $.md5('xxdTest'+ new Date().getTime() + 'defaultKey'),
                         },
-                        data:{
-
-                        },
+                        data: JSON.stringify(formData),
                         success: (res) => {
-                            if(res.code == rcode){
-                                resolve(res.data.data)
+                            if(res.code == rcode && res.data.code == 0){
+                                resolve(res.data)
                             }
                             else{
                                 reject(res)
@@ -138,23 +147,27 @@ define(['jquery'], function($) {
             }
 
             // 注册
-            let register = () => {
+            let register = (userData) => {
+                let formData = {
+                    data: userData
+                }
                 let pro = new Promise((resolve,reject) => {
                     com.ajax({
                         url: Api.register,
-                        contentType:'',
+                        contentType: "application/json",
+                        type: "post",
                         headers:{
-
+                            "Accept": "application/json;charset=UTF-8",
+                            "clientId": "XXD_INTEGRATION_PLATFORM",
+                            "clientTime": new Date().getTime()
                         },
-                        data:{
-
-                        },
+                        data: JSON.stringify(formData),
                         success: (res) => {
-                            if(res.code == rcode){
-                                resolve(res.data.data)
+                            if(res.code == rcode && res.data.data){
+                                resolve(res.data)
                             }
                             else{
-                                reject(res)
+                                reject(res.data)
                             }
                         },
                         error: (res) => {
@@ -166,7 +179,7 @@ define(['jquery'], function($) {
             }
 
             // 运行逻辑
-            let userData = new Object()
+            var userData = new Object()
             // 获取电话
             userData.phone    = getValue(param.phone)
             // 获取密码
@@ -186,21 +199,24 @@ define(['jquery'], function($) {
             }
             // 密码校验
             let checkPassword = (param) => {
-                let rule = /xxx/
+                let rule = /^(?![0-9]+$)(?![a-zA-Z]+$)[0-9A-Za-z]{6,16}$/
                 let result = param.match(rule)
                 return !result 
             }
-
-
 
             /**
              * 点击事件
              */
             // 点击获取图片验证码
             $(param.imgCode).click(() => {
-                imgCode().then((value) => {
-                    $(param.imgCode).css({'background':value})
-                })
+                getFormToken().then(
+                    formToken => {
+                        imgCode(formToken)
+                    },
+                    formToken => {
+                        imgCode(formToken)
+                    }
+                )
             })
             // 点击获取短信验证码
             $(param.smsCode).click(() => {
@@ -219,7 +235,7 @@ define(['jquery'], function($) {
                 // 获取短信
                 if(userData.imgCode){
                     smsCode().then(
-                        (value) => {
+                        (res) => {
                             $(param.smsCode).props('disable',true)// 按钮设为  不可点
                             let startTime = 60
                             let timer = setInterval(() => {
@@ -233,7 +249,7 @@ define(['jquery'], function($) {
                             },1000)
                         },
                         (error) => {
-                            $(param.warn).text(error.data.message)
+                            $(param.warn).text(error.message)
                         }
                     )
                 }
@@ -242,17 +258,25 @@ define(['jquery'], function($) {
                 }
             })
             // 点击提交用户数据
-            $(param.register).click(() => {
-                register().then(
+            $(param.submit).click(() => {
+                register(userData).then(
                     (res) => {
-                        $.cookie('userToken', res.data.data , { path: '/', expires: 15 })
+                        $.cookie('userToken', res.data , { path: '/', expires: 15 })// 存储cookie
+                        // 成功回调
+                        if(param.success && typeof(param.success) == 'function'){
+                            param.success()
+                        }
                     },
                     (error) => {
                         $(param.warn).text(error.message)
+                        // 失败回调
+                        if(param.fail && typeof(param.fail) == 'function'){
+                            param.fail()
+                        }
                     }
                 )
             })
         }
     }
-
+    return user()
 })

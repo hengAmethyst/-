@@ -7,7 +7,8 @@ define(['base','com_v2','md5'], function($,com,md5) {
             smsCode:'/userCenter/user/sendSMS',
             formToken:'/feapi/users/formToken',
             voiceCode:'/userCenter/user/sendVoice',
-            checkKaptcha:'/userCenter/kaptchaCode/checkKaptcha'
+            checkKaptcha:'/userCenter/kaptchaCode/checkKaptcha',
+            isLogin:'/userCenter/user/beInLogging'
         }
         let rcode = 200000
 
@@ -27,6 +28,30 @@ define(['base','com_v2','md5'], function($,com,md5) {
             $(dom).blur(() => {
                 data[key] = $(dom).val()
             })
+        }
+        // 手机号校验
+        let checkPhone = (param) => {
+            let rule = /^(13[0-9]|15[0-9]|17[0-9]|18[0-9]|14[0-9])[0-9]{8}$/
+            let result = false
+            if(param){
+                result = param.match(rule)
+            }
+            return !result
+        }
+        // 密码校验
+        let checkPassword = (param) => {
+            let rule = /^(?![0-9]+$)(?![a-zA-Z]+$)[0-9A-Za-z]{6,16}$/
+            let result = false
+            if(param){
+                result = param.match(rule)
+            }
+            return !result 
+        }
+        //获取location中的url指定的key的value
+        let GetQueryString  = (name) => {
+            var reg = new RegExp("(^|&)" + name + "=([^&]*)(&|$)");
+            var r = window.location.search.substr(1).match(reg);
+            if (r != null) return unescape(r[2]); return null;
         }
 
         let getFormToken = () => {
@@ -174,9 +199,10 @@ define(['base','com_v2','md5'], function($,com,md5) {
                     data: {
                         userName: userData.phone,
                         phone:    userData.phone,
-                        password: $.md5($.md5(userData.password)),
+                        password: userData.password&&$.md5($.md5(userData.password)),
                         code:     userData.smsCode,
-                        inviterIdentity: null
+                        inviterIdentity: GetQueryString('inviterIdentity'),
+                        terminal: GetQueryString('terminal')
                     }
                 }
                 let pro = new Promise((resolve,reject) => {
@@ -220,18 +246,7 @@ define(['base','com_v2','md5'], function($,com,md5) {
             /**
              * 校验函数
              */
-            // 手机号校验
-            let checkPhone = (param) => {
-                let rule = /^(13[0-9]|15[0-9]|17[0-9]|18[0-9]|14[0-9])[0-9]{8}$/
-                let result = param.match(rule)
-                return !result
-            }
-            // 密码校验
-            let checkPassword = (param) => {
-                let rule = /^(?![0-9]+$)(?![a-zA-Z]+$)[0-9A-Za-z]{6,16}$/
-                let result = param.match(rule)
-                return !result 
-            }
+            
 
             /**
              * 点击事件
@@ -252,7 +267,7 @@ define(['base','com_v2','md5'], function($,com,md5) {
                 // 校验手机号
                 if(checkPhone(userData.phone)){
                     $(param.warn).removeClass('dishidden').text('请输入正确的手机号')
-                    userData.phone = null
+                    userData.phone = ''
                     return
                 }
                 // 校验密码
@@ -304,6 +319,17 @@ define(['base','com_v2','md5'], function($,com,md5) {
             }
             // 点击提交用户数据
             $(param.submit).click(() => {
+                // 校验手机号
+                if(checkPhone(userData.phone)){
+                    $(param.warn).removeClass('dishidden').text('请输入正确的手机号')
+                    userData.phone = null
+                    return
+                }
+                // 校验密码
+                if(checkPassword(userData.password)){
+                    $(param.warn).removeClass('dishidden').text('密码应为6-16位数字与字母组合')
+                    return
+                }
                 registerWay(userData).then(
                     (res) => {
                         function setCookie(cname, cvalue, exdays) {
@@ -397,7 +423,7 @@ define(['base','com_v2','md5'], function($,com,md5) {
                     data: {
                         userName: userData_1.phone,
                         phone:    userData_1.phone,
-                        password: $.md5($.md5(userData_1.password)),
+                        password: userData_1.password&&$.md5($.md5(userData_1.password)),
                         kaptcha:  userData_1.imgCode
                     }
                 }
@@ -455,6 +481,16 @@ define(['base','com_v2','md5'], function($,com,md5) {
             })
             // 点击提交用户数据
             $(param.submit).click(() => {
+                if(checkPhone(userData_1.phone)){
+                    $(param.warn).removeClass('dishidden').text('请输入正确的手机号')
+                    userData.phone = ''
+                    return
+                }
+                // 校验密码
+                if(checkPassword(userData_1.password)){
+                    $(param.warn).removeClass('dishidden').text('密码应为6-16位数字与字母组合')
+                    return
+                }
                 checkKaptcha(userData_1.imgCode).then(
                     () => {
                         loginWay(userData_1).then(
@@ -490,7 +526,48 @@ define(['base','com_v2','md5'], function($,com,md5) {
 
         }
 
-        return {register,login}
+        let isLogin = (param) => {
+            let isLogin = () => {
+                let pro = new Promise((resolve,reject) => {
+                    com.ajax({
+                        url        : Api.isLogin,
+                        contentType: "application/json",
+                        dataType   : "json",
+                        type       : "get",
+                        headers    : {
+                            Accept: "application/json;charset=UTF-8",
+                            clientId: "XXD_INTEGRATION_PLATFORM",
+                            clientTime:new Date().getTime(),
+                            token: com.getCookie("userToken")
+                        },
+                        success    : function (res) {
+                            resolve(res)
+                        },
+                        error : function(res){
+                            reject(res)
+                        }
+                    })
+                })
+                return pro
+            }
+
+            isLogin().then((data) => {
+                if(data.code == rcode){
+                    if(param.success){
+                        param.success()
+                    }
+                }
+                else{
+                    if(param.fail){
+                        param.fail()
+                    }
+                }
+            },() => {
+                console.error('isLogin请求错误')
+            })
+        }
+
+        return {register,login,isLogin}
     }
     return user()
 })
